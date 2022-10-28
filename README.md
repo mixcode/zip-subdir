@@ -6,7 +6,7 @@ Usually, zipping files is an easy job for simple shell scripts. However, there a
 This utility is a stand-alone tool that scans subdirectories and compress each directory to a separate, independent ZIP file.
 
 
-## install
+## Install
 
 ```
 go install github.com/mixcode/zip-subdir
