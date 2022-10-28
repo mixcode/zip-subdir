@@ -13,6 +13,7 @@ import (
 	tty "github.com/mattn/go-tty"
 )
 
+// global configs
 var (
 	omitDirName          = false
 	quiet                = false
@@ -89,7 +90,8 @@ func AddFileInfoToZip(z *zip.Writer, pathprefix string, zipprefix string, fi os.
 	// process a single file
 	const FLAG_EFS = 0x800 // EFS bit: for UTF-8 filename
 	h := &zip.FileHeader{Name: zipname, Method: zip.Deflate, Flags: FLAG_EFS}
-	h.SetModTime(time.Now())
+	//h.SetModTime(time.Now())	// deprecated
+	h.Modified = time.Now()
 	out, err := z.CreateHeader(h)
 	if err != nil {
 		return
@@ -98,6 +100,74 @@ func AddFileInfoToZip(z *zip.Writer, pathprefix string, zipprefix string, fi os.
 		fmt.Printf("%s\n", pathname)
 	}
 	_, err = io.Copy(out, f)
+	return
+}
+
+// make a zip for a subdirectory
+func makeZip(dirbasename string) (err error) {
+	ospath := filepath.Join(workdir, dirbasename)
+	zipname := filepath.Join(outdir, dirbasename) + ".zip"
+
+	st, err := os.Stat(zipname)
+	if !os.IsNotExist(err) {
+		if st.IsDir() {
+			return fmt.Errorf("cannot create file %s", zipname)
+		}
+		if !force {
+			fmt.Printf("The output file '%s' already exists.", zipname)
+			yes := promptYN(" Overwrite? (y/N)", false)
+			if !yes {
+				// ignore this file
+				return nil
+			}
+		}
+	}
+
+	fi, err := os.Create(zipname)
+	if err != nil {
+		return
+	}
+	defer fi.Close()
+	if !quiet {
+		fmt.Printf("Creating %s\n", zipname)
+	}
+	zw := zip.NewWriter(fi)
+	defer zw.Close()
+
+	if omitDirName {
+
+		// add each contents
+		var files []os.DirEntry
+		files, err = os.ReadDir(ospath)
+		if err != nil {
+			return
+		}
+		for _, f := range files {
+			var st os.FileInfo
+			st, err = os.Stat(filepath.Join(ospath, f.Name()))
+			if err != nil {
+				return
+			}
+			err = AddFileInfoToZip(zw, dirbasename, "", st)
+			if err != nil {
+				return
+			}
+		}
+
+	} else {
+
+		// add the whole directory
+		err = AddFileToZip(zw, "", ospath)
+		if err != nil {
+			return
+		}
+
+	}
+
+	if !quiet {
+		// write a newline
+		fmt.Println()
+	}
 	return
 }
 
@@ -160,83 +230,18 @@ func run() (err error) {
 	return
 }
 
-func makeZip(dirbasename string) (err error) {
-	ospath := filepath.Join(workdir, dirbasename)
-	zipname := filepath.Join(outdir, dirbasename) + ".zip"
-
-	st, err := os.Stat(zipname)
-	if !os.IsNotExist(err) {
-		if st.IsDir() {
-			return fmt.Errorf("cannot create file %s", zipname)
-		}
-		if !force {
-			fmt.Printf("The output file '%s' already exists.", zipname)
-			yes := promptYN(" Overwrite? (y/N)", false)
-			if !yes {
-				// ignore this file
-				return nil
-			}
-		}
-	}
-
-	fi, err := os.Create(zipname)
-	if err != nil {
-		return
-	}
-	defer fi.Close()
-	if !quiet {
-		fmt.Printf("Creating %s\n", zipname)
-	}
-	zw := zip.NewWriter(fi)
-	defer zw.Close()
-
-	if omitDirName {
-		// add each contents
-		var files []os.DirEntry
-		files, err = os.ReadDir(ospath)
-		if err != nil {
-			return
-		}
-		for _, f := range files {
-			var st os.FileInfo
-			st, err = os.Stat(filepath.Join(ospath, f.Name()))
-			if err != nil {
-				return
-			}
-			err = AddFileInfoToZip(zw, dirbasename, "", st)
-			if err != nil {
-				return
-			}
-		}
-
-	} else {
-
-		// add the whole directory
-		err = AddFileToZip(zw, "", ospath)
-		if err != nil {
-			return
-		}
-	}
-
-	if !quiet {
-		// write a newline
-		fmt.Println()
-	}
-	return
-}
-
 func main() {
 
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "ZIP each subdirectory independently\n")
+		fmt.Fprintf(flag.CommandLine.Output(), "Compress each subdirectory to different ZIP files\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage: %s [flags] [directory]\n", os.Args[0])
 		flag.PrintDefaults()
 	}
 
 	flag.BoolVar(&omitDirName, "c", omitDirName, "contents mode; the top subdirectory name is omitted in new zip files")
 	flag.BoolVar(&quiet, "q", quiet, "suppress progress outputs")
-	flag.BoolVar(&force, "f", force, "Force; overwrite anything without asking")
-	flag.BoolVar(&createZipForEmptyDir, "e", createZipForEmptyDir, "create ZIP even if the subdirectory is empty")
+	flag.BoolVar(&force, "f", force, "Force; overwrite everything without asking")
+	flag.BoolVar(&createZipForEmptyDir, "e", createZipForEmptyDir, "create ZIP even for empty subdirectories")
 	flag.StringVar(&outdir, "o", outdir, "output directory to put created ZIP files")
 	flag.Parse()
 
