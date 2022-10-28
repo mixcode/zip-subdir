@@ -1,7 +1,7 @@
 
 # Create ZIPs of each subdirectory
 
-Usually, zipping files is an easy job for simple shell scripts. However, there are some extreme cases that Linux-based shell scripts does not fit well. For example, Windows filesystems may have extremely long file names that Linux cannot handle. Or, there are circumtances that the standard ZIP tools are not available.
+Usually, zipping files is an easy job for simple shell scripts. However, there are some extreme cases that Linux-based shell scripts do not fit well. For example, Windows filesystems may have extremely long file names that Linux cannot handle. Or, there are circumtances that standard ZIP tools are not available.
 
 This utility is a stand-alone tool that scans subdirectories and compress each directory to a separate, independent ZIP file.
 
