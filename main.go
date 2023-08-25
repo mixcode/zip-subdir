@@ -21,7 +21,7 @@ const (
 
 // global configs
 var (
-	omitDirName           = false
+	keepDirName           = false
 	createZipForEmptyDir  = false
 	iterateSubdirectories = false
 
@@ -97,26 +97,27 @@ func AddFileInfoToZip(z *zip.Writer, pathprefix string, zipprefix string, fi os.
 	}
 
 	// process a single file
-	//const FLAG_EFS = 0x800 // EFS bit: for UTF-8 filename
-	//h := &zip.FileHeader{Name: zipname, Method: zip.Deflate, Flags: FLAG_EFS}
+	var h *zip.FileHeader
 	name := zipname
 	if convertTo != UTF8 {
-		// Note that it's safe to store non-UTF8 bytes in Go string, because it's internally just a []byte
-		name, err = iconv.ConvertString(name, UTF8, convertTo)
+		// convert the filename to a different charset
+		name, err = iconv.ConvertString(name, UTF8, convertTo) // Note that it's safe to store non-UTF8 bytes in Go string, because it's internally just a []byte
 		if err != nil {
 			return
 		}
+		h = &zip.FileHeader{Name: name, Method: zip.Deflate, NonUTF8: true}
+	} else {
+		h = &zip.FileHeader{Name: name, Method: zip.Deflate, NonUTF8: false}
 	}
-	h := &zip.FileHeader{Name: name, Method: zip.Deflate}
 	h.Modified = time.Now()
-	out, err := z.CreateHeader(h)
+	fz, err := z.CreateHeader(h)
 	if err != nil {
 		return
 	}
 	if !quiet {
 		fmt.Printf("\t%s\n", zipname)
 	}
-	_, err = io.Copy(out, f)
+	_, err = io.Copy(fz, f)
 	return
 }
 
@@ -155,7 +156,7 @@ func makeZip(dirpath string) (err error) {
 	zw := zip.NewWriter(fi)
 	defer zw.Close()
 
-	if omitDirName {
+	if !keepDirName {
 
 		// add each contents
 		var files []os.DirEntry
@@ -190,33 +191,6 @@ func makeZip(dirpath string) (err error) {
 		fmt.Println()
 	}
 	return
-}
-
-// actual main
-func run() (err error) {
-	arg := flag.Args()
-	if len(arg) == 0 {
-		return fmt.Errorf("no directory given (use --help for help)")
-	}
-	for _, path := range arg {
-		var st fs.FileInfo
-		st, err = os.Stat(path)
-		if os.IsNotExist(err) {
-			return
-		}
-		if !st.IsDir() {
-			return fmt.Errorf("%s is not a directory", path)
-		}
-		if iterateSubdirectories {
-			err = iterateDir(path)
-		} else {
-			err = makeZip(path)
-		}
-		if err != nil {
-			return
-		}
-	}
-	return nil
 }
 
 // find subdirectories in a directory and zip each of them
@@ -278,12 +252,52 @@ func iterateDir(path string) (err error) {
 	return
 }
 
+// actual main
+func run() (err error) {
+	arg := flag.Args()
+	if len(arg) == 0 {
+		return fmt.Errorf("no directory given (use --help for help)")
+	}
+
+	if overwrite {
+		// create the output directory if not exists
+		_, e := os.Stat(outdir)
+		if os.IsNotExist(e) {
+			err = os.MkdirAll(outdir, fs.ModePerm)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	for _, path := range arg {
+		var st fs.FileInfo
+		st, err = os.Stat(path)
+		if os.IsNotExist(err) {
+			return
+		}
+		if !st.IsDir() {
+			return fmt.Errorf("%s is not a directory", path)
+		}
+		if iterateSubdirectories {
+			err = iterateDir(path)
+		} else {
+			err = makeZip(path)
+		}
+		if err != nil {
+			return
+		}
+	}
+	return nil
+}
+
 func main() {
 
 	flag.Usage = func() {
 		fo := flag.CommandLine.Output()
 
-		fmt.Fprintf(fo, "Compress each directory to a ZIP file.\n")
+		fmt.Fprintf(fo, "Compress each directory to a zip file.\n")
+		fmt.Fprintf(fo, "The created zip files will have the same name with the directory.\n")
 		fmt.Fprintf(fo, "\n")
 		fmt.Fprintf(fo, "Usage: %s [flags] directory [directory...]\n", os.Args[0])
 		fmt.Fprintf(fo, "\n")
@@ -292,12 +306,12 @@ func main() {
 		fmt.Fprintf(fo, "\n")
 	}
 
-	flag.BoolVar(&omitDirName, "c", omitDirName, "contents only; the directory name is omitted in new zip files")
+	flag.BoolVar(&keepDirName, "k", keepDirName, "keep the directory name included in the filenames in the zip")
 	flag.BoolVar(&iterateSubdirectories, "s", iterateSubdirectories, "scan subdirectories of the directories and zip each of them")
 	flag.BoolVar(&quiet, "q", quiet, "quiet; suppress output messages")
-	flag.BoolVar(&overwrite, "o", overwrite, "overwrite file without asking")
+	flag.BoolVar(&overwrite, "o", overwrite, "overwrite file without asking. also creates the output directory if not exists.")
 	flag.BoolVar(&createZipForEmptyDir, "e", createZipForEmptyDir, "with -s, create ZIP even for empty subdirectories")
-	flag.StringVar(&outdir, "d", outdir, "output directory to put ZIP files")
+	flag.StringVar(&outdir, "d", outdir, "destination directory to put created zip files")
 	flag.StringVar(&convertTo, "t", convertTo, "codepage of filenames in created zip. WARNING: use only if you know exactly what you are doing!")
 
 	flag.Parse()
