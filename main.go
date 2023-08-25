@@ -30,10 +30,7 @@ var (
 
 	convertTo = UTF8 // filename codepage conversion
 
-	//workdir = "."
 	outdir = "."
-
-	//h := &zip.FileHeader{Name: zipname, Method: zip.Deflate, Flags: FLAG_EFS}
 )
 
 // show Yes/No prompt
@@ -117,7 +114,7 @@ func AddFileInfoToZip(z *zip.Writer, pathprefix string, zipprefix string, fi os.
 		return
 	}
 	if !quiet {
-		fmt.Printf("%s\n", pathname)
+		fmt.Printf("\t%s\n", zipname)
 	}
 	_, err = io.Copy(out, f)
 	return
@@ -127,7 +124,6 @@ func AddFileInfoToZip(z *zip.Writer, pathprefix string, zipprefix string, fi os.
 // dirpath: the path to the directory
 func makeZip(dirpath string) (err error) {
 	basename := filepath.Base(dirpath)
-	//ospath := filepath.Join(workdir, dirname)
 	zipname := filepath.Join(outdir, basename) + ".zip"
 
 	st, err := os.Stat(zipname)
@@ -151,7 +147,7 @@ func makeZip(dirpath string) (err error) {
 	}
 	defer fi.Close()
 	if !quiet {
-		fmt.Printf("Creating %s\n", zipname)
+		fmt.Printf("%s\n", zipname)
 	}
 	zw := zip.NewWriter(fi)
 	defer zw.Close()
@@ -284,7 +280,7 @@ func main() {
 	flag.Usage = func() {
 		fo := flag.CommandLine.Output()
 
-		fmt.Fprintf(fo, "Compress each directory to a ZIP file\n")
+		fmt.Fprintf(fo, "Compress each directory to a ZIP file.\n")
 		fmt.Fprintf(fo, "\n")
 		fmt.Fprintf(fo, "Usage: %s [flags] directory [directory...]\n", os.Args[0])
 		fmt.Fprintf(fo, "\n")
@@ -293,23 +289,15 @@ func main() {
 		fmt.Fprintf(fo, "\n")
 	}
 
-	flag.BoolVar(&omitDirName, "c", omitDirName, "contents mode; the directory name is omitted in new zip files")
+	flag.BoolVar(&omitDirName, "c", omitDirName, "contents only; the directory name is omitted in new zip files")
 	flag.BoolVar(&iterateSubdirectories, "s", iterateSubdirectories, "scan subdirectories of the directories and zip each of them")
-	flag.BoolVar(&quiet, "q", quiet, "suppress progress outputs")
-	flag.BoolVar(&overwrite, "o", overwrite, "Force; overwrite everything without asking")
-	flag.BoolVar(&createZipForEmptyDir, "e", createZipForEmptyDir, "create ZIP even for empty subdirectories")
-	flag.StringVar(&outdir, "d", outdir, "output directory to put created ZIP files")
-
+	flag.BoolVar(&quiet, "q", quiet, "quiet; suppress output messages")
+	flag.BoolVar(&overwrite, "o", overwrite, "overwrite file without asking")
+	flag.BoolVar(&createZipForEmptyDir, "e", createZipForEmptyDir, "with -s, create ZIP even for empty subdirectories")
+	flag.StringVar(&outdir, "d", outdir, "output directory to put ZIP files")
 	flag.StringVar(&convertTo, "t", convertTo, "codepage of filenames in created zip. WARNING: use only if you know exactly what you are doing!")
 
 	flag.Parse()
-
-	/*
-		workdir = flag.Arg(0)
-		if workdir == "" {
-			workdir = "."
-		}
-	*/
 
 	if outdir == "" {
 		outdir = "."
