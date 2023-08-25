@@ -1,37 +1,40 @@
 
-# Create ZIPs of each subdirectory
+# Create ZIP of each directory
 
 Usually, zipping files is an easy job for simple shell scripts. However, there are some extreme cases that Linux-based shell scripts do not fit well. For example, Windows filesystems may have extremely long file names that Linux cannot handle. Or, there are circumtances that standard ZIP tools are not available.
 
-This utility is a stand-alone tool that scans subdirectories and compress each directory to a separate, independent ZIP file.
-
+This utility is a simple stand-alone tool that zip directories. This tool CANNOT handle individual files but is enough for batch processing existing files.
 
 ## Install
 
-```
-go install github.com/mixcode/zip-subdir
-```
-
-## Usage
-
-* Zip each subdirectory of the current directory. Each ZIP file's top directory contains the subdirectory itself.
-```
-zip-subdir
+```sh
+go install github.com/mixcode/zip-subdir@latest
 ```
 
-* Zip subdirectories of the current directory. Each ZIP file's top directory has contents of the subdirectory.
-```
-zip-subdir -c
+## Example
+
+Zip directories `a`, `b`, `c` into `a.zip`, `b.zip`, `c.zip`. The zip files are created in the current directory.
+Also note that the trailing slashes are ignored.
+
+```sh
+zip-subdir a b/ c
 ```
 
-* Create ZIPs to another directory, silently overwriting all existing files, including the empty directories.
-```
-zip-subdir -q -e -o SOME_OUTPUT_DIRECTORY -f SOME_SOURCE_DIRECTORY
+---
+
+Zip each subdirectory of the current directory, one by one, then put them into `../outdir`.
+Option `-o` also overwrites existing files.
+
+```sh
+zip-subdir -s -d=../outdir -o .
 ```
 
-* Show flag list
-```
-zip-subdir -h
+---
+
+Show the help.
+
+```sh
+zip-subdir -help
 ```
 
 
