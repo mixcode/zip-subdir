@@ -123,6 +123,9 @@ func AddFileInfoToZip(z *zip.Writer, pathprefix string, zipprefix string, fi os.
 // make a zip for a subdirectory
 // dirpath: the path to the directory
 func makeZip(dirpath string) (err error) {
+
+	dirpath = strings.TrimRight(dirpath, "/\\") // remove trailing slashes
+
 	basename := filepath.Base(dirpath)
 	zipname := filepath.Join(outdir, basename) + ".zip"
 
