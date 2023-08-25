@@ -312,7 +312,7 @@ func main() {
 	flag.BoolVar(&overwrite, "o", overwrite, "overwrite file without asking. also creates the output directory if not exists.")
 	flag.BoolVar(&createZipForEmptyDir, "e", createZipForEmptyDir, "with -s, create ZIP even for empty subdirectories")
 	flag.StringVar(&outdir, "d", outdir, "destination directory to put created zip files")
-	flag.StringVar(&convertTo, "t", convertTo, "codepage of filenames in created zip. WARNING: use only if you know exactly what you are doing!")
+	flag.StringVar(&convertTo, "t", convertTo, "iconv charset name of filenames in created zip. WARNING: use only if you know exactly what you are doing!")
 
 	flag.Parse()
 

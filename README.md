@@ -31,6 +31,14 @@ zip-subdir -s -d=../outdir -o .
 
 ---
 
+Create a zip file which the filenames are stored in Japanese Shift-JIS character encoding. Option `-k` keeps the directory name ('日本語ファイル名') for the filenames in zip.
+
+```sh
+zip-subdir -t=SHIFT-JIS -k 日本語ファイル名/
+```
+
+---
+
 Show the help.
 
 ```sh
