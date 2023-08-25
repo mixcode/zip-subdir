@@ -170,7 +170,7 @@ func makeZip(dirpath string) (err error) {
 			if err != nil {
 				return
 			}
-			err = AddFileInfoToZip(zw, basename, "", st)
+			err = AddFileInfoToZip(zw, dirpath, "", st)
 			if err != nil {
 				return
 			}
@@ -200,50 +200,23 @@ func iterateDir(path string) (err error) {
 		return
 	}
 
-	outdirOk := false
-
 	for _, f := range files {
 		if !f.IsDir() {
 			continue
 		}
-		// Check contents of the dirctory
 		if !createZipForEmptyDir {
-			// check the contents of the subdir
-			var f2 []os.DirEntry
-			f2, err = os.ReadDir(filepath.Join(path, f.Name()))
+			// check the subdir is empty or not
+			var d []os.DirEntry
+			d, err = os.ReadDir(filepath.Join(path, f.Name()))
 			if err != nil {
 				return
 			}
-			if len(f2) == 0 {
+			if len(d) == 0 {
+				// ignore the empty directory
 				continue
 			}
 		}
-		if !outdirOk {
-			// check the output directory
-			var st os.FileInfo
-			st, err = os.Stat(outdir)
-			if os.IsNotExist(err) {
-				// create the output directory
-				if !overwrite {
-					yes := promptYN("The output directory does not exists. Create? (y/N)", false)
-					if !yes {
-						// stop by user interevention
-						return fmt.Errorf("stop")
-					}
-				}
-				err = os.MkdirAll(outdir, 0644)
-				if err != nil {
-					return
-				}
-			} else {
-				if !st.IsDir() {
-					err = fmt.Errorf("output path is not a directory")
-					return
-				}
-			}
-			outdirOk = true
-		}
-		err = makeZip(f.Name())
+		err = makeZip(filepath.Join(path, f.Name()))
 		if err != nil {
 			return
 		}
