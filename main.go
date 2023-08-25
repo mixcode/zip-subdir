@@ -196,6 +196,9 @@ func makeZip(dirpath string) (err error) {
 // actual main
 func run() (err error) {
 	arg := flag.Args()
+	if len(arg) == 0 {
+		return fmt.Errorf("no directory given (use --help for help)")
+	}
 	for _, path := range arg {
 		var st fs.FileInfo
 		st, err = os.Stat(path)
