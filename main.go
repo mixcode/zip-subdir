@@ -30,7 +30,7 @@ var (
 
 	convertTo = UTF8 // filename codepage conversion
 
-	outdir = "."
+	destDir = "."
 )
 
 // show Yes/No prompt
@@ -128,7 +128,7 @@ func makeZip(dirpath string) (err error) {
 	dirpath = strings.TrimRight(dirpath, "/\\") // remove trailing slashes
 
 	basename := filepath.Base(dirpath)
-	zipname := filepath.Join(outdir, basename) + ".zip"
+	zipname := filepath.Join(destDir, basename) + ".zip"
 
 	st, err := os.Stat(zipname)
 	if !os.IsNotExist(err) {
@@ -233,10 +233,10 @@ func run() (err error) {
 	}
 
 	if overwrite {
-		// create the output directory if not exists
-		_, e := os.Stat(outdir)
+		// create the destionation directory if not exists
+		_, e := os.Stat(destDir)
 		if os.IsNotExist(e) {
-			err = os.MkdirAll(outdir, fs.ModePerm)
+			err = os.MkdirAll(destDir, fs.ModePerm)
 			if err != nil {
 				return
 			}
@@ -281,16 +281,16 @@ func main() {
 
 	flag.BoolVar(&keepDirName, "k", keepDirName, "keep the directory name included in the filenames in the zip")
 	flag.BoolVar(&iterateSubdirectories, "s", iterateSubdirectories, "scan subdirectories of the directories and zip each of them")
-	flag.BoolVar(&quiet, "q", quiet, "quiet; suppress output messages")
-	flag.BoolVar(&overwrite, "o", overwrite, "overwrite file without asking. also creates the output directory if not exists.")
+	flag.BoolVar(&quiet, "q", quiet, "quiet; suppress messages")
+	flag.BoolVar(&overwrite, "o", overwrite, "overwrite file without asking. also creates the destination directory if not exists.")
 	flag.BoolVar(&createZipForEmptyDir, "e", createZipForEmptyDir, "with -s, create ZIP even for empty subdirectories")
-	flag.StringVar(&outdir, "d", outdir, "destination directory to put created zip files")
+	flag.StringVar(&destDir, "d", destDir, "destination directory to put created zip files")
 	flag.StringVar(&convertTo, "t", convertTo, "iconv charset name of filenames in created zip. WARNING: use only if you know exactly what you are doing!")
 
 	flag.Parse()
 
-	if outdir == "" {
-		outdir = "."
+	if destDir == "" {
+		destDir = "."
 	}
 
 	err := run()
