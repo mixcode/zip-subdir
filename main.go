@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	iconv "github.com/djimenez/iconv-go"
 	tty "github.com/mattn/go-tty"
 )
 
@@ -99,13 +98,15 @@ func AddFileInfoToZip(z *zip.Writer, pathprefix string, zipprefix string, fi os.
 	// process a single file
 	var h *zip.FileHeader
 	name := zipname
-	if convertTo != UTF8 {
+	if useIconv() && convertTo != UTF8 {
 		// convert the filename to a different charset
-		name, err = iconv.ConvertString(name, UTF8, convertTo) // Note that it's safe to store non-UTF8 bytes in Go string, because it's internally just a []byte
+		var nonUTF8 bool
+		name, nonUTF8, err = convertCharsetFrom(convertTo, name)
+		//name, err = iconv.ConvertString(name, UTF8, convertTo) // Note that it's safe to store non-UTF8 bytes in Go string, because it's internally just a []byte
 		if err != nil {
 			return
 		}
-		h = &zip.FileHeader{Name: name, Method: zip.Deflate, NonUTF8: true}
+		h = &zip.FileHeader{Name: name, Method: zip.Deflate, NonUTF8: nonUTF8}
 	} else {
 		h = &zip.FileHeader{Name: name, Method: zip.Deflate, NonUTF8: false}
 	}
@@ -285,7 +286,10 @@ func main() {
 	flag.BoolVar(&overwrite, "o", overwrite, "overwrite file without asking. also creates the destination directory if not exists.")
 	flag.BoolVar(&createZipForEmptyDir, "e", createZipForEmptyDir, "with -s, create ZIP even for empty subdirectories")
 	flag.StringVar(&destDir, "d", destDir, "destination directory to put created zip files")
-	flag.StringVar(&convertTo, "t", convertTo, "iconv charset name of filenames in created zip. WARNING: use only if you know exactly what you are doing!")
+
+	if useIconv() {
+		flag.StringVar(&convertTo, "t", convertTo, "iconv charset name of filenames in created zip. WARNING: use only if you know exactly what you are doing!")
+	}
 
 	flag.Parse()
 
