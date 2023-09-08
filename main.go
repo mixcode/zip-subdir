@@ -244,14 +244,43 @@ func run() (err error) {
 		}
 	}
 
-	for _, path := range arg {
+	// expand wildcard pattern and find directories
+	files := make([]string, 0)
+	for _, a := range arg {
+		var l []string
+		l, err = filepath.Glob(a)
+		if err != nil {
+			return
+		}
+		if len(l) == 0 {
+			// expansion failed
+			files = append(files, a)
+			continue
+		}
+		if len(l) == 1 {
+			// only one entry found; do not filter directories
+			files = append(files, l[0])
+			continue
+		}
+		// multiple entries: select directories
+		for _, f := range l {
+			st, _ := os.Stat(f)
+			if st != nil && st.IsDir() {
+				files = append(files, f)
+			}
+		}
+	}
+
+	for _, path := range files {
 		var st fs.FileInfo
 		st, err = os.Stat(path)
 		if os.IsNotExist(err) {
-			return
+			fmt.Fprintf(os.Stderr, "\"%s\" not found\n", path)
+			continue
 		}
-		if !st.IsDir() {
-			return fmt.Errorf("%s is not a directory", path)
+		if st == nil || !st.IsDir() {
+			fmt.Fprintf(os.Stderr, "\"%s\" is not a directory\n", path)
+			continue
 		}
 		if iterateSubdirectories {
 			err = iterateDir(path)
